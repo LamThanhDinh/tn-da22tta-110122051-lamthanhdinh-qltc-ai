@@ -188,6 +188,7 @@ describe("Goal Model", () => {
         user: testUser._id,
         name: "Buy a new laptop",
         targetAmount: 30000000,
+        currentAmount: 30000000,
         status: "completed",
       };
 

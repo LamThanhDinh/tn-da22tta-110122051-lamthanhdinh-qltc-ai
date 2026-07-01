@@ -32,6 +32,15 @@ const loadFamilyForMember = async (familyId, userId) => {
 
 const createNotification = (payload) => Notification.create(payload);
 
+const getCurrentMonthRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+  return { year, month, startDate, endDate };
+};
+
 const formatTransaction = (transaction) => ({
   id: transaction._id,
   _id: transaction._id,
@@ -48,7 +57,8 @@ const formatTransaction = (transaction) => ({
   paymentMethod: transaction.accountId,
 });
 
-const getFamilyStats = async (familyId) => {
+const getFamilyStats = async (familyInput) => {
+  const familyId = getIdValue(familyInput);
   const totals = await Transaction.aggregate([
     { $match: { familyId: toObjectId(familyId) } },
     {
@@ -60,7 +70,7 @@ const getFamilyStats = async (familyId) => {
     },
   ]);
 
-  return totals.reduce(
+  const stats = totals.reduce(
     (acc, item) => {
       if (item._id === "THUNHAP") {
         acc.totalIncome = item.total || 0;
@@ -83,6 +93,43 @@ const getFamilyStats = async (familyId) => {
       totalTransactions: 0,
     }
   );
+
+  const family =
+    familyInput && familyInput.monthlyBudget !== undefined
+      ? familyInput
+      : await Family.findById(familyId).select("monthlyBudget");
+  const { year, month, startDate, endDate } = getCurrentMonthRange();
+  const monthlyExpenseAgg = await Transaction.aggregate([
+    {
+      $match: {
+        familyId: toObjectId(familyId),
+        type: "CHITIEU",
+        date: { $gte: startDate, $lte: endDate },
+      },
+    },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const spent = monthlyExpenseAgg[0]?.total || 0;
+  const budget = family?.monthlyBudget || {};
+  const budgetAmount =
+    Number(budget.amount || 0) > 0 &&
+    Number(budget.month) === month &&
+    Number(budget.year) === year
+      ? Number(budget.amount)
+      : 0;
+
+  return {
+    ...stats,
+    familyBudget: {
+      amount: budgetAmount,
+      spent,
+      remaining: Math.max(0, budgetAmount - spent),
+      percentUsed: budgetAmount > 0 ? Math.min(100, Math.round((spent / budgetAmount) * 100)) : 0,
+      isOverBudget: budgetAmount > 0 && spent > budgetAmount,
+      month,
+      year,
+    },
+  };
 };
 
 exports.createFamily = async (req, res) => {
@@ -118,6 +165,74 @@ exports.createFamily = async (req, res) => {
   } catch (error) {
     console.error("Error creating family:", error);
     res.status(500).json({ message: "Lỗi khi tạo gia đình", error: error.message });
+  }
+};
+
+exports.updateFamily = async (req, res) => {
+  try {
+    const family = await Family.findById(req.params.id)
+      .populate("ownerId", "fullname email username avatar")
+      .populate("members.userId", "fullname email username avatar");
+
+    if (!family) {
+      return res.status(404).json({ message: "Không tìm thấy gia đình" });
+    }
+
+    if (!isOwner(family, req.user.id)) {
+      return res.status(403).json({ message: "Chỉ chủ nhóm mới có thể cập nhật gia đình" });
+    }
+
+    const name = String(req.body.name || "").trim();
+    const description = String(req.body.description || "").trim();
+
+    if (!name) {
+      return res.status(400).json({ message: "Tên gia đình là bắt buộc" });
+    }
+
+    family.name = name;
+    family.description = description;
+    await family.save();
+
+    res.json({ message: "Đã cập nhật gia đình", family });
+  } catch (error) {
+    console.error("Error updating family:", error);
+    res.status(500).json({ message: "Lỗi khi cập nhật gia đình", error: error.message });
+  }
+};
+
+exports.updateFamilyBudget = async (req, res) => {
+  try {
+    const family = await Family.findById(req.params.id)
+      .populate("ownerId", "fullname email username avatar")
+      .populate("members.userId", "fullname email username avatar");
+
+    if (!family) {
+      return res.status(404).json({ message: "KhĂ´ng tĂ¬m tháº¥y gia Ä‘Ă¬nh" });
+    }
+
+    if (!isOwner(family, req.user.id)) {
+      return res.status(403).json({ message: "Chá»‰ chá»§ nhĂ³m má»›i cĂ³ thá»ƒ cáº­p nháº­t ngĂ¢n sĂ¡ch gia Ä‘Ă¬nh" });
+    }
+
+    const amount = Math.round(Number(req.body.amount || 0));
+    if (!Number.isFinite(amount) || amount < 0) {
+      return res.status(400).json({ message: "NgĂ¢n sĂ¡ch khĂ´ng há»£p lá»‡" });
+    }
+
+    const { year, month } = getCurrentMonthRange();
+    family.monthlyBudget = {
+      amount,
+      month,
+      year,
+      updatedAt: new Date(),
+    };
+    await family.save();
+
+    const stats = await getFamilyStats(family);
+    res.json({ message: "ÄĂ£ cáº­p nháº­t ngĂ¢n sĂ¡ch gia Ä‘Ă¬nh", family, stats });
+  } catch (error) {
+    console.error("Error updating family budget:", error);
+    res.status(500).json({ message: "Lá»—i khi cáº­p nháº­t ngĂ¢n sĂ¡ch gia Ä‘Ă¬nh", error: error.message });
   }
 };
 

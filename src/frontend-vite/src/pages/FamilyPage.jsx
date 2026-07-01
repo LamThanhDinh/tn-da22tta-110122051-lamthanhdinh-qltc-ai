@@ -6,14 +6,13 @@ import {
   faCalendarAlt,
   faCheck,
   faCheckCircle,
-  faChevronLeft,
-  faChevronRight,
   faCrown,
   faEdit,
   faEnvelope,
   faExclamationTriangle,
   faHome,
   faPencilAlt,
+  faPiggyBank,
   faPlus,
   faReceipt,
   faSignOutAlt,
@@ -29,6 +28,7 @@ import Navbar from "../components/Navbar/Navbar";
 import Footer from "../components/Footer/Footer";
 import Button from "../components/Common/Button";
 import ConfirmDialog from "../components/Common/ConfirmDialog";
+import Pagination from "../components/Common/Pagination";
 import { getProfile } from "../api/profileService";
 import { getAccounts } from "../api/accountsService";
 import { getCategories } from "../api/categoriesService";
@@ -45,6 +45,8 @@ import {
   inviteFamilyMember,
   leaveFamily,
   transferFamilyOwnership,
+  updateFamily,
+  updateFamilyBudget,
   updateFamilyMemberNickname,
   updateFamilyTransaction,
 } from "../api/familyService";
@@ -533,10 +535,14 @@ const FamilyPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [familyForm, setFamilyForm] = useState(initialFamilyForm);
+  const [familyEditForm, setFamilyEditForm] = useState(initialFamilyForm);
+  const [budgetAmount, setBudgetAmount] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
 
   // modal states
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+  const [isEditFamilyModalOpen, setIsEditFamilyModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null); // null = add, object = edit
@@ -620,6 +626,12 @@ const FamilyPage = () => {
     familyDetail?.ownerId?._id || selectedFamily?.ownerId?._id || selectedFamily?.ownerId;
   const isCurrentUserOwner =
     selectedFamilyId && String(currentUserId || "") === String(selectedOwnerId || "");
+  const familyBudget = stats.familyBudget || {};
+  const budgetAmountValue = Number(familyBudget.amount || 0);
+  const budgetSpent = Number(familyBudget.spent || 0);
+  const budgetRemaining = Number(familyBudget.remaining || 0);
+  const budgetPercent = Number(familyBudget.percentUsed || 0);
+  const hasFamilyBudget = budgetAmountValue > 0;
 
   // â”€â”€ loaders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadBaseData = useCallback(async () => {
@@ -726,6 +738,62 @@ const FamilyPage = () => {
       setMessageType("success");
     } catch (err) {
       setMessage(err.response?.data?.message || "Không thể tạo nhóm gia đình.");
+      setMessageType("error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditFamilyModal = () => {
+    setFamilyEditForm({
+      name: familyDetail?.name || selectedFamily?.name || "",
+      description: familyDetail?.description || selectedFamily?.description || "",
+    });
+    setIsEditFamilyModalOpen(true);
+  };
+
+  const handleUpdateFamily = async (e) => {
+    e.preventDefault();
+    if (!selectedFamilyId || !familyEditForm.name.trim()) return;
+    setIsSaving(true);
+    setMessage("");
+    try {
+      await updateFamily(selectedFamilyId, {
+        name: familyEditForm.name.trim(),
+        description: familyEditForm.description.trim(),
+      });
+      setIsEditFamilyModalOpen(false);
+      await Promise.all([loadFamilyData(1), loadBaseData()]);
+      setMessage("Đã cập nhật nhóm gia đình.");
+      setMessageType("success");
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Không thể cập nhật nhóm gia đình.");
+      setMessageType("error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openBudgetModal = () => {
+    setBudgetAmount(hasFamilyBudget ? String(budgetAmountValue) : "");
+    setIsBudgetModalOpen(true);
+  };
+
+  const handleUpdateBudget = async (e) => {
+    e.preventDefault();
+    if (!selectedFamilyId) return;
+    const amount = Number(String(budgetAmount || "0").replace(/[^0-9]/g, ""));
+    setIsSaving(true);
+    setMessage("");
+    try {
+      const result = await updateFamilyBudget(selectedFamilyId, amount);
+      if (result?.stats) setStats(result.stats);
+      setIsBudgetModalOpen(false);
+      await Promise.all([loadFamilyData(txPage), loadBaseData()]);
+      setMessage(amount > 0 ? "Đã cập nhật ngân sách gia đình." : "Đã xóa ngân sách gia đình.");
+      setMessageType("success");
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Không thể cập nhật ngân sách gia đình.");
       setMessageType("error");
     } finally {
       setIsSaving(false);
@@ -1017,8 +1085,16 @@ const FamilyPage = () => {
                         </Button>
                         <button
                           type="button"
+                          className={styles.editActionButton}
+                          title="Đổi tên nhóm"
+                          onClick={openEditFamilyModal}
+                        >
+                          <FontAwesomeIcon icon={faPencilAlt} />
+                        </button>
+                        <button
+                          type="button"
                           className={styles.ownerActionButton}
-                          title="Chuyá»ƒn quyá»n chá»§ nhĂ³m"
+                          title="Chuyển quyền chủ nhóm"
                           onClick={() => { setTransferToMemberId(""); setIsTransferModalOpen(true); }}
                         >
                           <FontAwesomeIcon icon={faCrown} />
@@ -1026,7 +1102,7 @@ const FamilyPage = () => {
                         <button
                           type="button"
                           className={styles.dangerActionButton}
-                          title="XĂ³a nhĂ³m gia Ä‘Ă¬nh"
+                          title="Xóa nhóm gia đình"
                           onClick={() => setShowDeleteFamily(true)}
                         >
                           <FontAwesomeIcon icon={faTrash} />
@@ -1041,16 +1117,16 @@ const FamilyPage = () => {
                           onClick={() => { setEditingTx(null); setIsTxModalOpen(true); }}
                           className={styles.addTransactionButton}
                         >
-                          ThĂªm giao dá»‹ch chung
+                          Thêm giao dịch chung
                         </Button>
                         <button
                           type="button"
                           className={styles.leaveButton}
-                          title="Rá»i khá»i nhĂ³m"
+                          title="Rời khỏi nhóm"
                           onClick={() => setShowLeaveFamily(true)}
                         >
                           <FontAwesomeIcon icon={faSignOutAlt} />
-                          Rá»i nhĂ³m
+                          Rời nhóm
                         </button>
                       </>
                     )}
@@ -1074,6 +1150,57 @@ const FamilyPage = () => {
                   <div className={styles.statCard}>
                     <span>Giao dịch</span>
                     <strong>{stats.totalTransactions || 0}</strong>
+                  </div>
+                </div>
+
+                {/* family budget */}
+                <div className={styles.budgetPanel}>
+                  <div className={styles.budgetHeader}>
+                    <div>
+                      <span className={styles.eyebrow}>
+                        <FontAwesomeIcon icon={faPiggyBank} /> Ngân sách gia đình
+                      </span>
+                      <h2>Ngân sách tháng {familyBudget.month || new Date().getMonth() + 1}</h2>
+                      <p>
+                        {hasFamilyBudget
+                          ? `Đã dùng ${budgetPercent}% ngân sách chi tiêu chung trong tháng này.`
+                          : "Chưa đặt ngân sách chung cho tháng này."}
+                      </p>
+                    </div>
+                    {isCurrentUserOwner && (
+                      <button
+                        type="button"
+                        className={styles.budgetActionButton}
+                        onClick={openBudgetModal}
+                      >
+                        <FontAwesomeIcon icon={faPencilAlt} />
+                        {hasFamilyBudget ? "Cập nhật" : "Đặt ngân sách"}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className={styles.budgetProgressTrack}>
+                    <div
+                      className={`${styles.budgetProgressFill} ${familyBudget.isOverBudget ? styles.overBudget : ""}`}
+                      style={{ width: `${hasFamilyBudget ? budgetPercent : 0}%` }}
+                    />
+                  </div>
+
+                  <div className={styles.budgetStats}>
+                    <div>
+                      <span>Ngân sách</span>
+                      <strong>{hasFamilyBudget ? formatCurrency(budgetAmountValue) : "Chưa đặt"}</strong>
+                    </div>
+                    <div>
+                      <span>Đã chi tháng này</span>
+                      <strong className={styles.expense}>{formatCurrency(budgetSpent)}</strong>
+                    </div>
+                    <div>
+                      <span>Còn lại</span>
+                      <strong className={familyBudget.isOverBudget ? styles.expense : styles.income}>
+                        {hasFamilyBudget ? formatCurrency(budgetRemaining) : "--"}
+                      </strong>
+                    </div>
                   </div>
                 </div>
 
@@ -1274,31 +1401,11 @@ const FamilyPage = () => {
                         })}
                       </div>
 
-                      {/* Pagination */}
-                      {txPagination && txPagination.totalPages > 1 && (
-                        <div className={styles.pagination}>
-                          <button
-                            className={styles.pageBtn}
-                            disabled={txPage <= 1}
-                            onClick={() => loadFamilyData(txPage - 1)}
-                            title="Trang trước"
-                          >
-                            <FontAwesomeIcon icon={faChevronLeft} />
-                          </button>
-                          <span className={styles.pageInfo}>
-                            Trang {txPagination.page} / {txPagination.totalPages}
-                            <small> ({txPagination.total} giao dịch)</small>
-                          </span>
-                          <button
-                            className={styles.pageBtn}
-                            disabled={txPage >= txPagination.totalPages}
-                            onClick={() => loadFamilyData(txPage + 1)}
-                            title="Trang sau"
-                          >
-                            <FontAwesomeIcon icon={faChevronRight} />
-                          </button>
-                        </div>
-                      )}
+                      <Pagination
+                        currentPage={txPagination?.page || txPage}
+                        totalPages={txPagination?.totalPages || 1}
+                        onPageChange={loadFamilyData}
+                      />
                     </>
                   )}
                 </div>
@@ -1376,6 +1483,115 @@ const FamilyPage = () => {
         categories={categories}
         isSaving={isSaving}
       />
+
+      {/* Edit family modal */}
+      {isEditFamilyModalOpen && (
+        <div className={styles.modalOverlay} onMouseDown={() => setIsEditFamilyModalOpen(false)}>
+          <form
+            className={styles.modalDialog}
+            onSubmit={handleUpdateFamily}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <FontAwesomeIcon icon={faPencilAlt} />
+              <div>
+                <h2>Đổi tên nhóm</h2>
+                <p>Cập nhật tên và mô tả của nhóm gia đình.</p>
+              </div>
+              <button type="button" onClick={() => setIsEditFamilyModalOpen(false)} aria-label="Đóng">
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <label>
+                Tên nhóm
+                <input
+                  value={familyEditForm.name}
+                  onChange={(e) => setFamilyEditForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="VD: Gia đình Lâm Thanh Đỉnh"
+                  maxLength={80}
+                  autoFocus
+                />
+              </label>
+              <label>
+                Mô tả
+                <textarea
+                  value={familyEditForm.description}
+                  onChange={(e) => setFamilyEditForm((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="Mô tả ngắn"
+                  rows={3}
+                  maxLength={200}
+                />
+              </label>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setIsEditFamilyModalOpen(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} /> Hủy
+              </button>
+              <button
+                type="submit"
+                className={styles.primaryButton}
+                disabled={isSaving || !familyEditForm.name.trim()}
+              >
+                <FontAwesomeIcon icon={faCheck} /> Lưu thay đổi
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Family budget modal */}
+      {isBudgetModalOpen && (
+        <div className={styles.modalOverlay} onMouseDown={() => setIsBudgetModalOpen(false)}>
+          <form
+            className={styles.modalDialog}
+            onSubmit={handleUpdateBudget}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <FontAwesomeIcon icon={faPiggyBank} />
+              <div>
+                <h2>Ngân sách gia đình</h2>
+                <p>Đặt hạn mức chi tiêu chung cho tháng hiện tại.</p>
+              </div>
+              <button type="button" onClick={() => setIsBudgetModalOpen(false)} aria-label="Đóng">
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <label>
+                Ngân sách tháng này
+                <input
+                  value={budgetAmount ? Number(String(budgetAmount).replace(/[^0-9]/g, "") || 0).toLocaleString("vi-VN") : ""}
+                  onChange={(e) => setBudgetAmount(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="VD: 5.000.000"
+                  inputMode="numeric"
+                  autoFocus
+                />
+              </label>
+              <p className={styles.modalHint}>
+                Nhập 0 hoặc để trống rồi lưu nếu bạn muốn bỏ ngân sách tháng này.
+              </p>
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setIsBudgetModalOpen(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} /> Hủy
+              </button>
+              <button type="submit" className={styles.primaryButton} disabled={isSaving}>
+                <FontAwesomeIcon icon={faCheck} /> Lưu ngân sách
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Confirm delete member */}
       <ConfirmDialog

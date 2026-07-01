@@ -12,6 +12,18 @@ export const createFamily = async (payload) => {
   return response.data;
 };
 
+export const updateFamily = async (familyId, payload) => {
+  const response = await axiosInstance.put(`${API_URL}/${familyId}`, payload);
+  return response.data;
+};
+
+export const updateFamilyBudget = async (familyId, amount) => {
+  const response = await axiosInstance.patch(`${API_URL}/${familyId}/budget`, {
+    amount,
+  });
+  return response.data;
+};
+
 export const getFamilyDetail = async (familyId) => {
   const response = await axiosInstance.get(`${API_URL}/${familyId}`);
   return response.data;

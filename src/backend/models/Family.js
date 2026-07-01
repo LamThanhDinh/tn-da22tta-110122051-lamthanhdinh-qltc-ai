@@ -37,6 +37,12 @@ const FamilySchema = new mongoose.Schema(
       type: [FamilyMemberSchema],
       default: [],
     },
+    monthlyBudget: {
+      amount: { type: Number, default: 0, min: 0 },
+      month: { type: Number, min: 1, max: 12, default: null },
+      year: { type: Number, min: 2000, default: null },
+      updatedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );

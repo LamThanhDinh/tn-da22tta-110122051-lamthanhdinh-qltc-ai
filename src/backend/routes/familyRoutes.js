@@ -6,6 +6,8 @@ const familyController = require("../controllers/familyController");
 router.post("/", verifyToken, familyController.createFamily);
 router.get("/", verifyToken, familyController.getFamilies);
 router.get("/:id", verifyToken, familyController.getFamilyDetail);
+router.put("/:id", verifyToken, familyController.updateFamily);
+router.patch("/:id/budget", verifyToken, familyController.updateFamilyBudget);
 router.delete("/:id", verifyToken, familyController.deleteFamily);
 router.post("/:id/invite", verifyToken, familyController.inviteMember);
 router.patch("/:id/members/:memberId/nickname", verifyToken, familyController.updateMemberNickname);
