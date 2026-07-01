@@ -579,16 +579,48 @@ exports.getFamilyTransactions = async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
+    const { keyword, type, categoryId, accountId, dateFrom, dateTo } = req.query;
+    const matchCriteria = { familyId: family._id };
+
+    if (keyword) {
+      matchCriteria.name = { $regex: String(keyword).trim(), $options: "i" };
+    }
+
+    if (type && type !== "ALL") {
+      matchCriteria.type = type;
+    }
+
+    if (categoryId && categoryId !== "ALL" && mongoose.Types.ObjectId.isValid(categoryId)) {
+      matchCriteria.categoryId = toObjectId(categoryId);
+    }
+
+    if (accountId && accountId !== "ALL" && mongoose.Types.ObjectId.isValid(accountId)) {
+      matchCriteria.accountId = toObjectId(accountId);
+    }
+
+    if (dateFrom || dateTo) {
+      matchCriteria.date = {};
+      if (dateFrom) {
+        const start = new Date(dateFrom);
+        start.setHours(0, 0, 0, 0);
+        matchCriteria.date.$gte = start;
+      }
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        matchCriteria.date.$lte = end;
+      }
+    }
 
     const [transactions, total] = await Promise.all([
-      Transaction.find({ familyId: family._id })
+      Transaction.find(matchCriteria)
         .populate("accountId", "name type bankName")
         .populate("categoryId", "name icon type")
         .populate("userId", "fullname username email avatar")
         .sort({ date: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Transaction.countDocuments({ familyId: family._id }),
+      Transaction.countDocuments(matchCriteria),
     ]);
 
     const stats = await getFamilyStats(family._id);

@@ -69,9 +69,12 @@ export const transferFamilyOwnership = async (familyId, newOwnerId) => {
   return response.data;
 };
 
-export const getFamilyTransactions = async (familyId, { page = 1, limit = 20 } = {}) => {
+export const getFamilyTransactions = async (
+  familyId,
+  { page = 1, limit = 20, filters = {} } = {}
+) => {
   const response = await axiosInstance.get(`${API_URL}/${familyId}/transactions`, {
-    params: { page, limit },
+    params: { page, limit, ...filters },
   });
   return response.data;
 };

@@ -55,6 +55,7 @@ import styles from "../styles/FamilyPage.module.css";
 import txStyles from "../components/Transactions/AddEditTransactionModal.module.css";
 import CategoryAnalysisChart from "../components/Categories/CategoryAnalysisChart";
 import DateRangeNavigator from "../components/Common/DateRangeNavigator";
+import TransactionFilterPanel from "../components/Transactions/TransactionFilterPanel";
 import { getIconObject } from "../utils/iconMap";
 
 // ————————————————————————————————————————————————————————————————————————————
@@ -81,6 +82,7 @@ const emptyTxForm = () => ({
 });
 
 const initialFamilyForm = { name: "", description: "" };
+const initialFamilyTxFilters = {};
 
 // —————————————————————————————————————————————————————————————————————————————
 const FamilyTransactionModal = ({
@@ -532,6 +534,8 @@ const FamilyPage = () => {
   const [familyDetail, setFamilyDetail] = useState(null);
   const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0, totalTransactions: 0 });
   const [transactions, setTransactions] = useState([]);
+  const [familyTxFilters, setFamilyTxFilters] = useState(initialFamilyTxFilters);
+  const [tempFamilyTxFilters, setTempFamilyTxFilters] = useState(initialFamilyTxFilters);
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [familyForm, setFamilyForm] = useState(initialFamilyForm);
@@ -668,7 +672,11 @@ const FamilyPage = () => {
     try {
       const [detailRes, txRes] = await Promise.all([
         getFamilyDetail(selectedFamilyId),
-        getFamilyTransactions(selectedFamilyId, { page, limit: 5 }),
+        getFamilyTransactions(selectedFamilyId, {
+          page,
+          limit: 5,
+          filters: familyTxFilters,
+        }),
       ]);
       setFamilyDetail(detailRes.family);
       setStats(txRes.stats || detailRes.stats || {});
@@ -679,7 +687,7 @@ const FamilyPage = () => {
       setMessage("Không thể tải chi tiết gia đình.");
       setMessageType("error");
     }
-  }, [selectedFamilyId]);
+  }, [selectedFamilyId, familyTxFilters]);
 
   // ── chart loader ──────────────────────────────────────────────────────────────────────────
   const buildChartParams = useCallback(() => {
@@ -798,6 +806,21 @@ const FamilyPage = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleFamilyTxFilterFieldChange = (fieldName, value) => {
+    setTempFamilyTxFilters((prev) => ({ ...prev, [fieldName]: value }));
+  };
+
+  const handleApplyFamilyTxFilters = () => {
+    setFamilyTxFilters(tempFamilyTxFilters);
+    setTxPage(1);
+  };
+
+  const handleResetFamilyTxFilters = () => {
+    setTempFamilyTxFilters(initialFamilyTxFilters);
+    setFamilyTxFilters(initialFamilyTxFilters);
+    setTxPage(1);
   };
 
   const handleInvite = async (e) => {
@@ -1332,8 +1355,24 @@ const FamilyPage = () => {
                     <h2>Giao dịch chung</h2>
                     <FontAwesomeIcon icon={faWallet} />
                   </div>
+                  <div className={styles.familyTransactionFilters}>
+                    <TransactionFilterPanel
+                      filters={tempFamilyTxFilters}
+                      onFilterFieldChange={handleFamilyTxFilterFieldChange}
+                      onApplyFilters={handleApplyFamilyTxFilters}
+                      onResetFilters={handleResetFamilyTxFilters}
+                      categories={categories}
+                      accounts={accounts.map((account) => ({
+                        ...account,
+                        id: account.id || account._id,
+                      }))}
+                      isLoading={isSaving}
+                    />
+                  </div>
                   {transactions.length === 0 ? (
-                    <div className={styles.emptyState}>Chưa có giao dịch gia đình.</div>
+                    <div className={styles.emptyState}>
+                      Không tìm thấy giao dịch gia đình phù hợp.
+                    </div>
                   ) : (
                     <>
                       <div className={styles.transactionList}>
