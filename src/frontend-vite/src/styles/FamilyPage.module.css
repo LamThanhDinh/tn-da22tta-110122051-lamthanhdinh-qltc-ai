@@ -440,6 +440,12 @@
   background: #f8fafc;
 }
 
+.familyTransactionFilters input,
+.familyTransactionFilters select,
+.familyTransactionFilters textarea {
+  font-weight: 400;
+}
+
 .income {
   color: #059669 !important;
 }
