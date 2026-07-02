@@ -517,6 +517,21 @@
     scrollbar-width: none;
     padding: 0 12px;
     gap: 0;
+    /* Fade gradient gợi ý có thể scroll */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 16px,
+      black calc(100% - 16px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 16px,
+      black calc(100% - 16px),
+      transparent 100%
+    );
   }
 
   .tabs::-webkit-scrollbar {

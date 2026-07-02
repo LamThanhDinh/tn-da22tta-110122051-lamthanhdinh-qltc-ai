@@ -55,7 +55,7 @@ body {
   background: var(--color-background);
   border: 1px solid #1e90ff;
   border-radius: 12px;
-  padding: 80px 24px 28px 24px;
+  padding: 28px 24px;
   max-width: 360px;
   width: 100%;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);

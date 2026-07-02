@@ -223,82 +223,62 @@
   align-self: center;
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* ===== RESPONSIVE — MOBILE: horizontal scroll cards ===== */
 @media (max-width: 768px) {
   .widgetContainer {
-    flex-direction: column;
+    flex-direction: row;       /* giữ nằm ngang */
     width: 100%;
     max-width: 100%;
     height: auto;
-    min-height: 240px;
-    padding: 16px;
-    gap: 12px;
-  }
-
-  .statCard {
-    width: 100%;
-    padding: 16px;
-    gap: 16px;
-    height: auto;
-    min-height: 65px;
-  }
-
-  .iconIncome,
-  .iconExpense,
-  .iconCashflow {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
-  }
-
-  .divider {
-    width: 80%;
-    height: 1px;
-    background: linear-gradient(
+    min-height: unset;
+    padding: 0;
+    gap: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* mask fade hai bên gợi ý scroll */
+    -webkit-mask-image: linear-gradient(
       to right,
-      transparent 0%,
-      #e5e7eb 20%,
-      #e5e7eb 80%,
+      transparent 0,
+      black 12px,
+      black calc(100% - 12px),
       transparent 100%
     );
-    align-self: center;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 12px,
+      black calc(100% - 12px),
+      transparent 100%
+    );
+    padding-left: 4px;
+    padding-right: 4px;
   }
 
-  .label {
-    font-size: 0.75rem;
-  }
-
-  .amountIncome,
-  .amountExpense,
-  .amountCashflow {
-    font-size: 1.3rem;
-  }
-
-  .comparison {
-    font-size: 0.65rem;
-    padding: 4px 10px;
-  }
-
-  .comparisonText {
-    max-width: 200px;
-  }
-
-  .trendIcon {
-    font-size: 0.55rem;
-  }
-}
-
-@media (max-width: 576px) {
-  .widgetContainer {
-    padding: 14px;
-    gap: 10px;
-    min-height: 220px;
+  .widgetContainer::-webkit-scrollbar {
+    display: none;
   }
 
   .statCard {
-    padding: 14px;
-    gap: 14px;
-    min-height: 60px;
+    flex: 0 0 auto;            /* không co giãn, giữ nguyên width */
+    width: 148px;
+    min-width: 148px;
+    padding: 14px 12px;
+    gap: 10px;
+    height: auto;
+    min-height: unset;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1.5px solid #f0f2f5;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    margin-right: 10px;
+  }
+
+  .statCard:last-child {
+    margin-right: 0;
   }
 
   .iconIncome,
@@ -307,29 +287,63 @@
     width: 36px;
     height: 36px;
     font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  /* Dividers ẩn trên mobile (dùng card gap thay) */
+  .divider {
+    display: none;
   }
 
   .label {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.3px;
   }
 
   .amountIncome,
   .amountExpense,
   .amountCashflow {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    white-space: nowrap;
   }
 
   .comparison {
     font-size: 0.6rem;
-    padding: 3px 8px;
+    padding: 3px 7px;
+    border-radius: 6px;
   }
 
   .comparisonText {
-    max-width: 160px;
+    max-width: 120px;
   }
 
   .trendIcon {
     font-size: 0.5rem;
+  }
+}
+
+
+@media (max-width: 576px) {
+  .statCard {
+    width: 135px;
+    min-width: 135px;
+    padding: 12px 10px;
+    margin-right: 8px;
+  }
+
+  .iconIncome,
+  .iconExpense,
+  .iconCashflow {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .amountIncome,
+  .amountExpense,
+  .amountCashflow {
+    font-size: 0.95rem;
   }
 }
 

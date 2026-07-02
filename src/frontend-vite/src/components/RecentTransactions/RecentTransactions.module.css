@@ -59,9 +59,9 @@
 }
 
 .tableWrapper {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow-x: auto;
+  border: none;
+  border-radius: 0;
+  overflow-x: visible;
 }
 
 /* Main container */
@@ -390,42 +390,207 @@
   }
 }
 
-@media (max-width: 480px) {
-  .title {
-    font-size: var(--title-font-size-h3);
+/* ===== MOBILE CARD-BASED TRANSACTION LIST ===== */
+@media (max-width: 768px) {
+  /* Table → card layout */
+  .tableWrapper {
+    border: none;
+    overflow-x: visible;
   }
 
-  .summarySection {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
+  .transactionsTable thead {
+    display: none; /* Ẩn header table trên mobile */
   }
 
-  .summaryActions {
+  .transactionsTable,
+  .transactionsTable tbody,
+  .transactionsTable tr {
+    display: block;
     width: 100%;
   }
 
-  .viewAllButton {
-    width: 100%;
-    justify-content: center;
+  /* Mỗi row = 1 card */
+  .transactionsTable tr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    background: #ffffff;
+    border: 1.5px solid #f0f2f5;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    position: relative;
+    transition: box-shadow 0.2s ease;
   }
 
-  .transactionsTable th:nth-child(3),
-  .transactionsTable td:nth-child(3) {
+  .transactionsTable tr:active {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    background: #fafbfc;
+  }
+
+  /* Ẩn columns ít quan trọng */
+  .transactionsTable td:nth-child(3), /* Mô tả */
+  .transactionsTable td:nth-child(4)  /* Phương thức */ {
     display: none;
   }
 
-  /* Responsive cho action buttons */
+  /* Tất cả td về block trong flex container */
+  .transactionsTable td {
+    display: block;
+    border: none;
+    padding: 0;
+  }
+
+  /* TD 1: Danh mục icon + tên — chiếm flex-grow */
+  .transactionsTable td:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* TD ngày: nhỏ, ở đáy row — ẩn trên mobile nhỏ */
+  .transactionsTable td:nth-child(1) {
+    position: absolute;
+    bottom: 10px;
+    left: 64px;
+  }
+
+  .datePart {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  .timePart {
+    display: none;
+  }
+
+  /* Category icon wrapper on mobile */
+  .categoryCell {
+    flex: 1;
+  }
+
+  /* TD số tiền: bên phải, nổi bật */
+  .transactionsTable td:nth-child(5) {
+    font-size: 0.98rem;
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* TD actions: icon buttons nhỏ */
+  .transactionsTable td:nth-child(6) {
+    flex-shrink: 0;
+  }
+
   .actionButtons {
     gap: 6px;
-    flex-direction: row; /* Đảm bảo vẫn nằm ngang trên mobile nhỏ */
   }
 
   .actionButton {
-    min-width: 28px;
-    height: 28px;
-    padding: 5px 6px;
-    font-size: 0.75rem; /* Font size nhỏ hơn cho mobile nhỏ */
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+    border: none;
+    padding: 0;
+  }
+
+  .editButton {
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+
+  .editButton:hover {
+    background: #4f46e5;
+    color: #ffffff;
+  }
+
+  .deleteButton {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .deleteButton:hover {
+    background: #dc2626;
+    color: #ffffff;
+  }
+
+  /* Category name trên mobile */
+  .categoryNameLink {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* Summary section */
+  .summarySection {
+    border-radius: 14px;
+    padding: 14px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .summaryStats {
+    flex: 1;
+  }
+
+  .summaryActions {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .viewAllButton {
+    width: auto;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+  }
+
+  /* Header */
+  .header {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 8px;
+  }
+
+  /* Load more button */
+  .loadMoreButton {
+    width: auto;
+    max-width: none;
+    padding: 12px 28px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  .recentTransactionsContainer {
+    padding: 16px;
+    border-radius: 20px;
+    margin-top: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1.5px solid #f0f2f5;
+  }
+}
+
+@media (max-width: 480px) {
+  .transactionsTable td:nth-child(1) {
+    display: none; /* Ẩn ngày hoàn toàn trên màn rất nhỏ */
+  }
+
+  .transactionsTable tr {
+    padding: 12px 14px;
+    border-radius: 14px;
+    margin-bottom: 6px;
   }
 }
 

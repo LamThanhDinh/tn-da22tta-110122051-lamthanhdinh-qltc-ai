@@ -14,16 +14,16 @@
     left: 0;
     right: 0;
     height: var(--bottom-nav-height, 64px);
-    background: var(--color-background, #ffffff);
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.94);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
     z-index: 999;
     align-items: center;
     justify-content: space-around;
     padding: 0 4px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   .navItem {
@@ -52,7 +52,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
+    width: 48px;
     height: 28px;
     border-radius: 14px;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -63,7 +63,7 @@
   }
 
   .navIcon {
-    font-size: 18px;
+    font-size: 20px;
     transition: all 0.2s ease;
   }
 
@@ -84,7 +84,7 @@
   }
 
   .navLabel {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 500;
     line-height: 1;
     letter-spacing: 0.02em;
@@ -92,13 +92,31 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 64px;
+    max-width: 80px;
     text-align: center;
   }
 
   .navItem.active .navLabel {
     color: var(--color-primary, #3f51b5);
     font-weight: 600;
+  }
+
+  /* Nút "Khác" - có background */
+  .moreButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Icon xoay khi MoreMenu mở */
+  .moreOpen {
+    background-color: var(--color-primary-light, #e8eaf6) !important;
+  }
+
+  .moreOpen .navIcon {
+    transform: rotate(90deg);
   }
 
   @keyframes indicatorPop {

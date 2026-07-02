@@ -333,8 +333,9 @@
   }
 
   .subtitle {
-    font-size: 0.8rem;
-    display: none; /* Hide subtitle on mobile for compact view */
+    font-size: 0.75rem;
+    opacity: 0.8;
+    /* Thu nhỏ thay vì ẩn hoàn toàn — giữ context cho người dùng */
   }
 
   .contextText {
