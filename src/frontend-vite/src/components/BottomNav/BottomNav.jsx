@@ -20,7 +20,7 @@ const navItems = [
 ];
 
 // Các trang thuộc "Khác" — dùng để highlight nút khi đang ở những trang này
-const morePaths = ["/categories", "/goals", "/recurring-transactions", "/profile"];
+const morePaths = ["/categories", "/goals", "/recurring-transactions", "/profile", "/statistics", "/accounts"];
 
 const BottomNav = () => {
   const location = useLocation();

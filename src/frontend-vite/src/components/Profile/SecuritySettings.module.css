@@ -1,3 +1,5 @@
+/* SecuritySettings.module.css */
+
 .container {
   max-width: 500px;
   margin: 0 auto;
@@ -26,13 +28,13 @@
   background-color: var(--color-primary);
   color: white;
   border: none;
-  padding: 10px 20px; /* Thu nhỏ padding */
+  padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem; /* Giảm font-size */
+  font-size: 0.9rem;
   font-weight: 500;
   width: auto;
-  min-width: 120px; /* Đặt min-width nhỏ hơn */
+  min-width: 120px;
   align-self: flex-start;
   transition: background-color 0.2s;
 }
@@ -59,7 +61,6 @@
   color: var(--color-error-primary);
 }
 
-/* Thêm vào SecuritySettings.module.css */
 .section {
   margin-top: 40px;
   padding-top: 30px;
@@ -70,16 +71,33 @@
   padding-top: 0;
   border-top: none;
 }
+
+/* ===== LỊCH SỬ ĐĂNG NHẬP — giới hạn chiều cao, scroll nội bộ ===== */
 .historyList {
   list-style: none;
   padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
 }
+
+.historyList::-webkit-scrollbar {
+  width: 4px;
+}
+.historyList::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
 .historyItem {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
+  align-items: flex-start;
+  padding: 10px 0;
   border-bottom: 1px solid #f0f0f0;
+  gap: 8px;
 }
 .historyItem:last-child {
   border-bottom: none;
@@ -87,19 +105,32 @@
 .historyInfo {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.historyInfo strong {
+  font-size: 0.82rem;
+  word-break: break-all;
+  color: var(--color-text-primary);
 }
 .historyTime {
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+
+/* ===== DANGER ZONE — wrap trên mobile ===== */
 .dangerZone {
-  background-color: var(--color-background) 1f2;
+  background-color: #fff5f5;
   border: 1px solid #ffdde0;
   border-radius: 8px;
   padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .dangerZone p {
   margin: 5px 0 0 0;
@@ -115,15 +146,15 @@
   cursor: pointer;
   font-weight: 500;
   flex-shrink: 0;
-  width: auto;
   min-width: 120px;
+  min-height: 44px;
   transition: background-color 0.2s;
 }
-
 .dangerButton:hover {
   background-color: #b91c1c;
 }
 
+/* ===== LAYOUT GRID ===== */
 .securityGrid {
   display: flex;
   flex-direction: column;
@@ -142,22 +173,21 @@
   border: 1.5px solid var(--color-border);
   padding: 2rem 2rem 1.5rem 2rem;
   flex: 1 1 0;
-  min-width: 320px;
-  height: 500px; /* Chiều cao cố định đồng bộ với ProfileInfo */
+  min-width: 300px;
+  /* Bỏ height cố định 500px — tự co dãn theo nội dung */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
 }
 
 .securityCardDanger {
-  background: var(--color-background) 1f2;
+  background: #fff5f5;
   border-radius: 14px;
   border: 1.5px solid #ffdde0;
   box-shadow: 0 2px 12px rgba(255, 80, 80, 0.07);
   padding: 2rem 2rem 1.5rem 2rem;
   flex: 1 1 0;
-  min-width: 320px;
-  min-height: 120px;
+  min-width: 300px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -198,15 +228,36 @@
   margin-bottom: 16px;
 }
 
+/* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .securityRow {
     flex-direction: column;
     gap: 18px;
   }
-  .securityCard {
+  .securityCard,
+  .securityCardDanger {
     min-width: 0;
     width: 100%;
-    height: auto; /* Cho phép tự động điều chỉnh height trên mobile */
-    min-height: 350px; /* Đảm bảo height tối thiểu */
+  }
+}
+
+@media (max-width: 768px) {
+  .securityCard {
+    padding: 1.25rem;
+  }
+  .securityCardDanger {
+    padding: 1.25rem;
+  }
+  .historyList {
+    max-height: 160px;
+  }
+  .dangerZone {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px;
+  }
+  .dangerButton {
+    width: 100%;
+    text-align: center;
   }
 }

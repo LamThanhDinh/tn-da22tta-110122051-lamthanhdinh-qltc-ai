@@ -264,8 +264,8 @@
 
   .statCard {
     flex: 0 0 auto;            /* không co giãn, giữ nguyên width */
-    width: 148px;
-    min-width: 148px;
+    width: 160px;
+    min-width: 160px;
     padding: 14px 12px;
     gap: 10px;
     height: auto;

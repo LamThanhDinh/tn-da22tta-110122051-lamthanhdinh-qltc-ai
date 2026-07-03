@@ -7,10 +7,28 @@ import {
   faRedoAlt,
   faUser,
   faTimes,
+  faChartBar,
+  faWallet,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./MoreMenu.module.css";
 
 const moreItems = [
+  {
+    name: "Thống kê",
+    path: "/statistics",
+    icon: faChartBar,
+    desc: "Phân tích chi tiêu",
+    color: "#0ea5e9",
+    bg: "#e0f2fe",
+  },
+  {
+    name: "Nguồn tiền",
+    path: "/accounts",
+    icon: faWallet,
+    desc: "Quản lý tài khoản",
+    color: "#8b5cf6",
+    bg: "#ede9fe",
+  },
   {
     name: "Danh mục",
     path: "/categories",
