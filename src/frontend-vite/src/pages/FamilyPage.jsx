@@ -533,9 +533,6 @@ const FamilyPage = () => {
   const [selectedFamilyId, setSelectedFamilyId] = useState("");
   const [familyDetail, setFamilyDetail] = useState(null);
   const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0, totalTransactions: 0 });
-  const _now = new Date();
-  const [statsMonth, setStatsMonth] = useState(_now.getMonth() + 1); // 1-12
-  const [statsYear, setStatsYear] = useState(_now.getFullYear());
   const [transactions, setTransactions] = useState([]);
   const [familyTxFilters, setFamilyTxFilters] = useState(initialFamilyTxFilters);
   const [tempFamilyTxFilters, setTempFamilyTxFilters] = useState(initialFamilyTxFilters);
@@ -672,13 +669,23 @@ const FamilyPage = () => {
       setTxPagination(null);
       return;
     }
+    // Derive date params từ chartDate/chartPeriod (cùng bộ lọc với biểu đồ)
+    const statsFilters = { ...familyTxFilters };
+    if (chartPeriod === "month") {
+      statsFilters.month = chartDate.getMonth() + 1;
+      statsFilters.year = chartDate.getFullYear();
+    } else if (chartPeriod === "year") {
+      statsFilters.year = chartDate.getFullYear();
+    } else if (chartPeriod === "week") {
+      statsFilters.date = chartDate.toISOString().split("T")[0];
+    }
     try {
       const [detailRes, txRes] = await Promise.all([
         getFamilyDetail(selectedFamilyId),
         getFamilyTransactions(selectedFamilyId, {
           page,
           limit: 5,
-          filters: { ...familyTxFilters, month: statsMonth, year: statsYear },
+          filters: statsFilters,
         }),
       ]);
       setFamilyDetail(detailRes.family);
@@ -690,7 +697,7 @@ const FamilyPage = () => {
       setMessage("Không thể tải chi tiết gia đình.");
       setMessageType("error");
     }
-  }, [selectedFamilyId, familyTxFilters, statsMonth, statsYear]);
+  }, [selectedFamilyId, familyTxFilters, chartPeriod, chartDate]);
 
   // ── chart loader ──────────────────────────────────────────────────────────────────────────
   const buildChartParams = useCallback(() => {
@@ -1159,42 +1166,7 @@ const FamilyPage = () => {
                   </div>
                 </div>
 
-                {/* stats */}
-                <div className={styles.statsMonthSelector}>
-                  <FontAwesomeIcon icon={faCalendarAlt} className={styles.statsMonthIcon} />
-                  <button
-                    type="button"
-                    className={styles.statsMonthBtn}
-                    onClick={() => {
-                      const d = new Date(statsYear, statsMonth - 2, 1);
-                      setStatsMonth(d.getMonth() + 1);
-                      setStatsYear(d.getFullYear());
-                    }}
-                  >‹</button>
-                  <strong className={styles.statsMonthLabel}>
-                    Tháng {statsMonth}/{statsYear}
-                  </strong>
-                  <button
-                    type="button"
-                    className={styles.statsMonthBtn}
-                    disabled={statsMonth === _now.getMonth() + 1 && statsYear === _now.getFullYear()}
-                    onClick={() => {
-                      const d = new Date(statsYear, statsMonth, 1);
-                      if (d <= _now) {
-                        setStatsMonth(d.getMonth() + 1);
-                        setStatsYear(d.getFullYear());
-                      }
-                    }}
-                  >›</button>
-                  {(statsMonth !== _now.getMonth() + 1 || statsYear !== _now.getFullYear()) && (
-                    <button
-                      type="button"
-                      className={styles.statsMonthReset}
-                      onClick={() => { setStatsMonth(_now.getMonth() + 1); setStatsYear(_now.getFullYear()); }}
-                    >Tháng này</button>
-                  )}
-                </div>
-
+                {/* stats — tự động theo bộ lọc thời gian của biểu đồ bên dưới */}
                 <div className={styles.statsGrid}>
                   <div className={styles.statCard}>
                     <span>Tổng thu</span>
