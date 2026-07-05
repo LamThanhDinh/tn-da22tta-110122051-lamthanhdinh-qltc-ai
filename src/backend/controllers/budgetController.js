@@ -367,13 +367,14 @@ const buildBaseSuggestions = async (userId, targetMonth, targetYear) => {
       const history = historyMonths.map(
         (monthItem) => categoryHistory[monthItem.key] || 0
       );
-      const monthsWithData = history.filter((amount) => amount > 0).length;
+      const activeHistory = history.filter((amount) => amount > 0);
+      const monthsWithData = activeHistory.length;
       if (monthsWithData === 0) return null;
 
-      const total = history.reduce((sum, amount) => sum + amount, 0);
-      const average = total / history.length;
-      const max = Math.max(...history);
-      const min = Math.min(...history);
+      const total = activeHistory.reduce((sum, amount) => sum + amount, 0);
+      const average = total / monthsWithData;
+      const max = Math.max(...activeHistory);
+      const min = Math.min(...activeHistory);
       const volatility = average > 0 ? (max - min) / average : 0;
       const bufferRate = volatility > 0.5 ? 0.15 : 0.08;
       const suggestedAmount = roundBudgetAmount(average * (1 + bufferRate));

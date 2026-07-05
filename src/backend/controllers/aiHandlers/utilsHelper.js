@@ -462,7 +462,7 @@ class UtilsHelper {
   }
 
   // Phân tích tài chính thông minh và đưa ra insights
-  async analyzeFinancialHealth(userId) {
+  async analyzeFinancialHealth(userId, mode = "full") {
     try {
       const userObjectId =
         typeof userId === "string"
@@ -554,6 +554,26 @@ class UtilsHelper {
         totalBalance
       );
 
+      if (mode !== "full") {
+        return {
+          response: this.generateFocusedFinancialResponse(
+            mode,
+            monthsData,
+            goals,
+            totalBalance,
+            insights.data
+          ),
+          action: "CHAT_RESPONSE",
+          data: {
+            monthsData,
+            insights: insights.data,
+            goals,
+            totalBalance,
+            mode,
+          },
+        };
+      }
+
       return {
         response: insights.text,
         action: "FINANCIAL_INSIGHTS",
@@ -575,6 +595,205 @@ class UtilsHelper {
   }
 
   // Generate insights từ data
+  formatMoney(amount) {
+    return `${Math.round(amount || 0).toLocaleString("vi-VN")}đ`;
+  }
+
+  getFinancialSnapshot(monthsData, goals, totalBalance, insightsData = {}) {
+    const current = monthsData[0] || {};
+    const expenseHistory = monthsData
+      .map((month) => month.totalExpense || 0)
+      .filter((amount) => amount > 0);
+    const incomeHistory = monthsData
+      .map((month) => month.totalIncome || 0)
+      .filter((amount) => amount > 0);
+    const avgMonthlyExpense =
+      expenseHistory.length > 0
+        ? expenseHistory.reduce((sum, amount) => sum + amount, 0) /
+          expenseHistory.length
+        : 0;
+    const avgMonthlyIncome =
+      incomeHistory.length > 0
+        ? incomeHistory.reduce((sum, amount) => sum + amount, 0) /
+          incomeHistory.length
+        : 0;
+    const today = new Date();
+    const currentDay = today.getDate();
+    const daysInCurrentMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0
+    ).getDate();
+    const projectedExpense =
+      currentDay > 0
+        ? ((current.totalExpense || 0) / currentDay) * daysInCurrentMonth
+        : current.totalExpense || 0;
+    const projectedBalance = avgMonthlyIncome - projectedExpense;
+    const availableThisMonth = Math.max(
+      (current.totalIncome || 0) - (current.totalExpense || 0),
+      0
+    );
+    const safeSaving = Math.max((current.totalIncome || avgMonthlyIncome) * 0.1, 0);
+    const targetSaving = Math.max((current.totalIncome || avgMonthlyIncome) * 0.2, 0);
+    const suggestedSaving =
+      availableThisMonth > 0
+        ? Math.min(Math.max(safeSaving, availableThisMonth * 0.5), availableThisMonth)
+        : 0;
+    const topCategories = Object.entries(current.categoryBreakdown || {})
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3);
+    const activeGoals =
+      insightsData.savingsPlan ||
+      goals
+        .filter((goal) => goal.status !== "completed")
+        .map((goal) => {
+          const remaining = Math.max(
+            (goal.targetAmount || 0) - (goal.currentAmount || 0),
+            0
+          );
+          const daysLeft = goal.deadline
+            ? Math.ceil(
+                (new Date(goal.deadline).getTime() - Date.now()) /
+                  (1000 * 60 * 60 * 24)
+              )
+            : null;
+          const monthsLeft =
+            daysLeft && daysLeft > 0 ? Math.max(daysLeft / 30, 1) : null;
+          return {
+            name: goal.name,
+            remaining,
+            daysLeft,
+            monthlyNeed: monthsLeft ? remaining / monthsLeft : remaining,
+          };
+        })
+        .filter((goal) => goal.remaining > 0);
+
+    return {
+      current,
+      totalBalance,
+      avgMonthlyExpense,
+      avgMonthlyIncome,
+      projectedExpense,
+      projectedBalance,
+      availableThisMonth,
+      safeSaving,
+      targetSaving,
+      suggestedSaving,
+      topCategories,
+      activeGoals,
+    };
+  }
+
+  generateFocusedFinancialResponse(mode, monthsData, goals, totalBalance, insightsData) {
+    const data = this.getFinancialSnapshot(
+      monthsData,
+      goals,
+      totalBalance,
+      insightsData
+    );
+    const currentIncome = data.current.totalIncome || 0;
+    const currentExpense = data.current.totalExpense || 0;
+    const currentBalance = currentIncome - currentExpense;
+    const savingRate =
+      currentIncome > 0 ? ((currentIncome - currentExpense) / currentIncome) * 100 : 0;
+
+    if (mode === "saving_amount") {
+      let text = `<strong>Bạn nên tiết kiệm bao nhiêu mỗi tháng?</strong>\n\n`;
+      text += `Tháng này bạn có thu nhập ${this.formatMoney(currentIncome)} và đã chi ${this.formatMoney(currentExpense)}. `;
+      text += `Phần còn lại hiện là <span class="balance ${currentBalance >= 0 ? "positive" : "negative"}">${this.formatMoney(currentBalance)}</span>.\n\n`;
+
+      if (currentIncome <= 0) {
+        text += `Mình chưa thấy thu nhập tháng này, nên chưa nên chốt một con số tiết kiệm cố định. Hãy nhập thu nhập trước, sau đó hệ thống sẽ tính mức 10-20% hợp lý hơn.`;
+      } else if (data.suggestedSaving <= 0) {
+        text += `Với dữ liệu hiện tại, bạn chưa nên ép tiết kiệm thêm trong tháng này vì chi tiêu đang ăn hết hoặc vượt thu nhập. Việc nên làm trước là giảm một vài khoản chi lớn rồi đặt lại mức tiết kiệm.`;
+      } else {
+        text += `Mức an toàn nên đặt là khoảng <strong>${this.formatMoney(data.suggestedSaving)}/tháng</strong>. `;
+        text += `Nếu muốn theo chuẩn tốt hơn, bạn có thể hướng tới 20% thu nhập, tức khoảng ${this.formatMoney(data.targetSaving)}/tháng.`;
+      }
+
+      if (data.topCategories.length > 0) {
+        const [categoryName, amount] = data.topCategories[0];
+        text += `\n\nKhoản chi lớn nhất hiện là ${categoryName} (${this.formatMoney(amount)}), nên đây là nơi đáng xem lại trước nếu muốn tăng tiền tiết kiệm.`;
+      }
+
+      return text;
+    }
+
+    if (mode === "saving_plan") {
+      let text = `<strong>Kế hoạch tiết kiệm đề xuất</strong>\n\n`;
+      text += `Dựa trên thu nhập ${this.formatMoney(currentIncome)}, chi tiêu ${this.formatMoney(currentExpense)} và số còn lại ${this.formatMoney(Math.max(currentBalance, 0))} trong tháng này.\n\n`;
+
+      if (data.activeGoals.length > 0) {
+        text += `Các mục tiêu nên ưu tiên:\n`;
+        data.activeGoals.slice(0, 3).forEach((goal, index) => {
+          text += `${index + 1}. ${goal.name}: còn ${this.formatMoney(goal.remaining)}, nên dành khoảng <strong>${this.formatMoney(goal.monthlyNeed)}/tháng</strong>`;
+          if (goal.daysLeft && goal.daysLeft > 0) {
+            text += ` trong ${goal.daysLeft} ngày tới`;
+          }
+          text += `.\n`;
+        });
+      } else {
+        text += `Bạn chưa có mục tiêu tiết kiệm đang mở. Có thể bắt đầu bằng mức ${this.formatMoney(data.safeSaving)} đến ${this.formatMoney(data.targetSaving)}/tháng, rồi tạo mục tiêu cụ thể như quỹ dự phòng, mua sắm lớn hoặc học tập.`;
+      }
+
+      if (data.suggestedSaving > 0) {
+        text += `\nVới dòng tiền hiện tại, mức dễ duy trì nhất là khoảng ${this.formatMoney(data.suggestedSaving)}/tháng.`;
+      } else {
+        text += `\nHiện tại dòng tiền chưa còn dư, nên kế hoạch trước mắt là giảm chi tiêu rồi mới tăng mức tiết kiệm.`;
+      }
+
+      return text;
+    }
+
+    if (mode === "forecast") {
+      let text = `<strong>Dự báo xu hướng chi tiêu</strong>\n\n`;
+      text += `Nếu giữ nhịp chi hiện tại, cuối tháng bạn có thể chi khoảng <strong>${this.formatMoney(data.projectedExpense)}</strong>. `;
+      text += `Trung bình chi tiêu các tháng có dữ liệu gần đây là ${this.formatMoney(data.avgMonthlyExpense)}.\n\n`;
+
+      if (data.avgMonthlyExpense > 0) {
+        const diff =
+          ((data.projectedExpense - data.avgMonthlyExpense) / data.avgMonthlyExpense) *
+          100;
+        text += `So với trung bình, xu hướng hiện tại đang ${diff >= 0 ? "cao hơn" : "thấp hơn"} khoảng ${Math.abs(diff).toFixed(1)}%.\n`;
+      }
+
+      text += `Dựa trên thu nhập trung bình ${this.formatMoney(data.avgMonthlyIncome)}, số dư dự kiến cuối tháng là <span class="balance ${data.projectedBalance >= 0 ? "positive" : "negative"}">${this.formatMoney(data.projectedBalance)}</span>.`;
+
+      if (data.topCategories.length > 0) {
+        text += `\n\nDanh mục đang chi nhiều nhất: ${data.topCategories
+          .map(([name, amount]) => `${name} ${this.formatMoney(amount)}`)
+          .join(", ")}.`;
+      }
+
+      return text;
+    }
+
+    let text = `<strong>Đánh giá tình hình tài chính hiện tại</strong>\n\n`;
+    text += `Tháng này bạn thu ${this.formatMoney(currentIncome)}, chi ${this.formatMoney(currentExpense)}, còn lại ${this.formatMoney(currentBalance)}. `;
+    if (currentIncome > 0) {
+      text += `Tỷ lệ tiết kiệm hiện khoảng ${savingRate.toFixed(1)}% thu nhập.\n\n`;
+    } else {
+      text += `Chưa có dữ liệu thu nhập tháng này nên tỷ lệ tiết kiệm chưa đủ tin cậy.\n\n`;
+    }
+
+    if (currentBalance < 0) {
+      text += `Tình hình đang hơi căng vì chi tiêu vượt thu nhập. Nên ưu tiên giảm các khoản chi lớn trước khi đặt mục tiêu tiết kiệm.`;
+    } else if (savingRate >= 20) {
+      text += `Tình hình khá tốt: bạn còn dư và tỷ lệ tiết kiệm đạt mức đẹp. Có thể tiếp tục phân bổ phần dư vào mục tiêu dài hạn.`;
+    } else if (savingRate >= 10) {
+      text += `Tình hình ổn, nhưng vẫn còn dư địa cải thiện. Nếu kiểm soát tốt các danh mục chi lớn, bạn có thể nâng tiết kiệm lên gần 20%.`;
+    } else {
+      text += `Tình hình tạm ổn nhưng tỷ lệ tiết kiệm còn thấp. Nên đặt một mức tiết kiệm nhỏ cố định trước, rồi tăng dần khi chi tiêu ổn định hơn.`;
+    }
+
+    if (data.topCategories.length > 0) {
+      const [categoryName, amount] = data.topCategories[0];
+      text += `\n\nĐiểm cần chú ý nhất là ${categoryName}, đang chi ${this.formatMoney(amount)} trong tháng này.`;
+    }
+
+    return text;
+  }
+
   generateFinancialInsights(monthsData, goals, totalBalance) {
     const current = monthsData[0];
     const last = monthsData[1];

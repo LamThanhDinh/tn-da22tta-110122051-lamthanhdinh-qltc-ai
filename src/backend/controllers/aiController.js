@@ -110,6 +110,43 @@ class AIController {
     this.conversationStates.delete(userId);
   }
 
+  normalizeMessageText(text = "") {
+    return `${text}`
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+  }
+
+  getFinancialAnalysisMode(message = "") {
+    const normalized = this.normalizeMessageText(message);
+
+    if (normalized.includes("du bao")) return "forecast";
+    if (
+      normalized.includes("ke hoach tiet kiem") ||
+      normalized.includes("de xuat ke hoach") ||
+      normalized.includes("goi y tiet kiem") ||
+      normalized.includes("khuyen nghi")
+    ) {
+      return "saving_plan";
+    }
+    if (
+      normalized.includes("nen tiet kiem bao nhieu") ||
+      normalized.includes("tiet kiem bao nhieu")
+    ) {
+      return "saving_amount";
+    }
+    if (
+      normalized.includes("danh gia") ||
+      normalized.includes("tinh hinh") ||
+      normalized.includes("suc khoe tai chinh")
+    ) {
+      return "assessment";
+    }
+
+    return "full";
+  }
+
   isInvoiceImportMessage(message) {
     const lowerMessage = `${message || ""}`.toLowerCase();
     return /hóa đơn|hoa don|invoice|receipt|bill|biên lai|phieu thu|phieu chi/.test(
@@ -701,7 +738,10 @@ SYSTEM: Bạn là AI assistant chuyên tách hóa đơn thành các khoản thu/
 
       case "ANALYZE_FINANCES":
         console.log("Handling ANALYZE_FINANCES intent");
-        return await this.utilsHelper.analyzeFinancialHealth(userId);
+        return await this.utilsHelper.analyzeFinancialHealth(
+          userId,
+          this.getFinancialAnalysisMode(aiResponse.originalMessage || responseForUser)
+        );
 
       case "VIEW_ACCOUNTS":
         // Xem danh sách tài khoản với filter từ entities
@@ -1068,6 +1108,7 @@ ${
   // Thử xử lý local trước khi gọi Gemini
   async tryLocalProcessing(message, userId) {
     const lowerMessage = message.toLowerCase().trim();
+    const normalizedMessage = this.normalizeMessageText(message);
 
     if (
       lowerMessage.includes("dự báo") ||
@@ -1081,10 +1122,23 @@ ${
       lowerMessage.includes("phân tích tài chính") ||
       lowerMessage.includes("phan tich tai chinh") ||
       lowerMessage.includes("tình hình tài chính") ||
-      lowerMessage.includes("tinh hinh tai chinh")
+      lowerMessage.includes("tinh hinh tai chinh") ||
+      normalizedMessage.includes("du bao") ||
+      normalizedMessage.includes("ke hoach tiet kiem") ||
+      normalizedMessage.includes("de xuat ke hoach") ||
+      normalizedMessage.includes("khuyen nghi") ||
+      normalizedMessage.includes("goi y tiet kiem") ||
+      normalizedMessage.includes("phan tich tai chinh") ||
+      normalizedMessage.includes("tinh hinh tai chinh") ||
+      normalizedMessage.includes("danh gia tinh hinh tai chinh") ||
+      normalizedMessage.includes("nen tiet kiem bao nhieu") ||
+      normalizedMessage.includes("tiet kiem bao nhieu")
     ) {
       console.log("Local processing: ANALYZE_FINANCES");
-      return await this.utilsHelper.analyzeFinancialHealth(userId);
+      return await this.utilsHelper.analyzeFinancialHealth(
+        userId,
+        this.getFinancialAnalysisMode(message)
+      );
     }
 
     // Pattern cho compare expenses

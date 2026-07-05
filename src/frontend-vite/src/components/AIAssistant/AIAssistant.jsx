@@ -158,6 +158,33 @@ const AIAssistant = () => {
     }
   };
 
+  const normalizeMessageText = (text = "") =>
+    text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+
+  const shouldShowFinancialInsightCards = (text = "") => {
+    const normalized = normalizeMessageText(text);
+
+    if (
+      normalized.includes("tiet kiem") ||
+      normalized.includes("ke hoach") ||
+      normalized.includes("du bao") ||
+      normalized.includes("danh gia") ||
+      normalized.includes("tinh hinh")
+    ) {
+      return false;
+    }
+
+    return (
+      normalized.includes("phan tich") ||
+      normalized.includes("canh bao") ||
+      normalized.includes("suc khoe tai chinh")
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim() && !invoiceFile) return;
@@ -198,7 +225,7 @@ const AIAssistant = () => {
           {
             type: "assistant",
             content: result.response,
-            showFinancialInsights: true,
+            showFinancialInsights: shouldShowFinancialInsightCards(userMessage),
             insightsData: result.data,
           },
         ]);
@@ -587,10 +614,6 @@ ${data.formatted.isPositive ? "✅ Tháng này bạn đã tiết kiệm được
     "chi 50k ăn sáng",
     "xem thống kê tháng này",
     "phân tích tài chính",
-    "đánh giá tình hình tài chính",
-    "dự báo xu hướng chi tiêu của tôi",
-    "đề xuất kế hoạch tiết kiệm phù hợp với mục tiêu của tôi",
-    "tôi nên tiết kiệm bao nhiêu mỗi tháng",
     "so sánh chi tiêu 3 tháng",
     "xem tài khoản",
     "xem giao dịch tháng này",
@@ -743,7 +766,7 @@ ${data.formatted.isPositive ? "✅ Tháng này bạn đã tiết kiệm được
                     ))}
                   </ul>
                   <p className={styles.commandNote}>
-                    Ví dụ: bạn có thể viết “xem giao dịch tháng này”, “thêm tài khoản ngân hàng”, hoặc “phân tích chi tiêu tuần này”.
+                    AI hiểu ngôn ngữ tự nhiên và hóa đơn hình ảnh/PDF.
                   </p>
                 </div>
               ) : (
