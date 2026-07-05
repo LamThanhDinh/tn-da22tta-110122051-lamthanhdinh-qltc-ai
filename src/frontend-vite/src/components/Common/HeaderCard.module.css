@@ -311,6 +311,9 @@
   .gridItem1_2 {
     align-self: start !important;
     min-width: auto;
+    width: 100%;
+    overflow-x: auto;   /* Cho phép StatsOverview scroll ngang bên trong */
+    -webkit-overflow-scrolling: touch;
   }
 
   .gridItem2_1 {

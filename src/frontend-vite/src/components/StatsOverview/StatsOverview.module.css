@@ -226,12 +226,12 @@
 /* ===== RESPONSIVE — MOBILE: horizontal scroll cards ===== */
 @media (max-width: 768px) {
   .widgetContainer {
-    flex-direction: row;       /* giữ nằm ngang */
+    flex-direction: row;
     width: 100%;
     max-width: 100%;
     height: auto;
     min-height: unset;
-    padding: 0;
+    padding: 4px 0;
     gap: 0;
     background: transparent;
     border: none;
@@ -239,23 +239,7 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    /* mask fade hai bên gợi ý scroll */
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black 12px,
-      black calc(100% - 12px),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black 12px,
-      black calc(100% - 12px),
-      transparent 100%
-    );
-    padding-left: 4px;
-    padding-right: 4px;
+    /* Bỏ mask-image — gây fade mờ card ngoài cùng */
   }
 
   .widgetContainer::-webkit-scrollbar {

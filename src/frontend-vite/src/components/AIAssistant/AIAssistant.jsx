@@ -68,10 +68,28 @@ const AIAssistant = () => {
 
       recognition.current.onerror = (event) => {
         console.error("Speech recognition error:", event.error);
+        if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
         setIsListening(false);
+        // Hiện lỗi rõ ràng cho người dùng
+        switch (event.error) {
+          case "not-allowed":
+            setMicError("Đã từ chối quyền mic. Vào Cài đặt để cấp lại.");
+            break;
+          case "no-speech":
+            setMicError("Không nghe thấy giọng nói. Hãy nói to hơn.");
+            break;
+          case "network":
+            setMicError("Lỗi mạng. Kiểm tra kết nối internet.");
+            break;
+          case "aborted":
+            break; // Người dùng tự dừng, không cần báo lỗi
+          default:
+            setMicError("Lỗi nhận dạng giọng nói: " + event.error);
+        }
       };
 
       recognition.current.onend = () => {
+        if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
         setIsListening(false);
       };
     }
@@ -132,17 +150,57 @@ const AIAssistant = () => {
     };
   }, [isOpen]);
 
-  const handleSpeechToggle = () => {
+  const [micError, setMicError] = useState("");
+  const micTimeoutRef = useRef(null);
+
+  const handleSpeechToggle = async () => {
+    setMicError("");
+
     if (isListening) {
       recognition.current?.stop();
       setIsListening(false);
-    } else {
-      if (recognition.current) {
-        recognition.current.start();
-        setIsListening(true);
+      if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
+      return;
+    }
+
+    // Kiểm tra API có hỗ trợ không
+    if (!recognition.current) {
+      setMicError("Trình duyệt không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome.");
+      return;
+    }
+
+    // Xin quyền microphone trước (bắt buộc trên mobile)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Dừng stream ngay sau khi có quyền — SpeechRecognition tự mở mic
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (permErr) {
+      if (permErr.name === "NotAllowedError") {
+        setMicError("Bạn đã từ chối quyền mic. Vào Cài đặt trình duyệt để cấp lại.");
+      } else if (permErr.name === "NotFoundError") {
+        setMicError("Không tìm thấy microphone trên thiết bị.");
       } else {
-        alert("Trình duyệt không hỗ trợ nhận diện giọng nói");
+        setMicError("Không thể truy cập microphone: " + permErr.message);
       }
+      return;
+    }
+
+    // Bắt đầu recognition
+    try {
+      recognition.current.start();
+      setIsListening(true);
+
+      // Tự dừng sau 10 giây nếu không có kết quả
+      micTimeoutRef.current = setTimeout(() => {
+        recognition.current?.stop();
+        setIsListening(false);
+      }, 10000);
+    } catch (startErr) {
+      // Bắt lỗi "already started"
+      if (startErr.name !== "InvalidStateError") {
+        setMicError("Không thể khởi động mic. Hãy thử lại.");
+      }
+      setIsListening(false);
     }
   };
 
@@ -1065,7 +1123,8 @@ ${data.formatted.isPositive ? "✅ Tháng này bạn đã tiết kiệm được
                   }`}
                   onClick={handleSpeechToggle}
                   disabled={isLoading}
-                  title={isListening ? "Dừng ghi âm" : "Ghi âm"}
+                  title={isListening ? "Dừng ghi âm (đang nghe...)" : "Nhấn để ghi âm giọng nói"}
+                  aria-label={isListening ? "Dừng ghi âm" : "Ghi âm"}
                 >
                   {isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
                 </button>
@@ -1078,6 +1137,24 @@ ${data.formatted.isPositive ? "✅ Tháng này bạn đã tiết kiệm được
                   <FaPaperPlane />
                 </button>
               </div>
+
+              {/* Trạng thái đang nghe */}
+              {isListening && (
+                <div className={styles.listeningIndicator}>
+                  <span className={styles.listeningDot} />
+                  <span className={styles.listeningDot} />
+                  <span className={styles.listeningDot} />
+                  <span className={styles.listeningText}>Đang nghe... Hãy nói rõ</span>
+                </div>
+              )}
+
+              {/* Thông báo lỗi mic */}
+              {micError && (
+                <div className={styles.micErrorMsg}>
+                  ⚠️ {micError}
+                </div>
+              )}
+
               {invoiceFile && (
                 <div className={styles.filePreview}>
                   <span className={styles.fileName} title={invoiceFile.name}>
