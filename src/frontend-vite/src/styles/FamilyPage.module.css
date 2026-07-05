@@ -317,6 +317,75 @@
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.18);
 }
 
+/* ── Stats Month Selector ──────────────────────────────────── */
+.statsMonthSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.statsMonthIcon {
+  color: #5c7cfa;
+  font-size: 14px;
+}
+
+.statsMonthBtn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.statsMonthBtn:hover:not(:disabled) {
+  background: #eef2ff;
+  border-color: #5c7cfa;
+  color: #5c7cfa;
+}
+
+.statsMonthBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.statsMonthLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  min-width: 110px;
+  text-align: center;
+}
+
+.statsMonthReset {
+  background: #eef2ff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5c7cfa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.statsMonthReset:hover {
+  background: #dfe6ff;
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
