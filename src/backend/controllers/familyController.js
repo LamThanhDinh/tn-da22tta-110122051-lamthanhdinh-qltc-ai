@@ -41,6 +41,44 @@ const getCurrentMonthRange = () => {
   return { year, month, startDate, endDate };
 };
 
+const getPeriodRange = ({ period, year, month, date }) => {
+  let startDate;
+  let endDate;
+
+  if (period === "year" && year) {
+    const y = parseInt(year);
+    startDate = new Date(Date.UTC(y, 0, 1));
+    endDate = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
+  }
+
+  if (period === "month" && year && month) {
+    const y = parseInt(year);
+    const m = parseInt(month);
+    startDate = new Date(Date.UTC(y, m - 1, 1));
+    endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+  }
+
+  if (period === "week" && date) {
+    const ref = new Date(date);
+    ref.setUTCHours(0, 0, 0, 0);
+    const dow = ref.getUTCDay();
+    startDate = new Date(ref);
+    startDate.setUTCDate(ref.getUTCDate() - dow);
+    endDate = new Date(startDate);
+    endDate.setUTCDate(startDate.getUTCDate() + 6);
+    endDate.setUTCHours(23, 59, 59, 999);
+  }
+
+  if (!period && year && month) {
+    const y = parseInt(year);
+    const m = parseInt(month);
+    startDate = new Date(Date.UTC(y, m - 1, 1));
+    endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+  }
+
+  return startDate && endDate ? { startDate, endDate } : null;
+};
+
 const formatTransaction = (transaction) => ({
   id: transaction._id,
   _id: transaction._id,
@@ -579,7 +617,18 @@ exports.getFamilyTransactions = async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
-    const { keyword, type, categoryId, accountId, dateFrom, dateTo } = req.query;
+    const {
+      keyword,
+      type,
+      categoryId,
+      accountId,
+      dateFrom,
+      dateTo,
+      period,
+      year,
+      month,
+      date: dateParam,
+    } = req.query;
     const matchCriteria = { familyId: family._id };
 
     if (keyword) {
@@ -610,9 +659,17 @@ exports.getFamilyTransactions = async (req, res) => {
         end.setHours(23, 59, 59, 999);
         matchCriteria.date.$lte = end;
       }
+    } else {
+      const periodRange = getPeriodRange({ period, year, month, date: dateParam });
+      if (periodRange) {
+        matchCriteria.date = {
+          $gte: periodRange.startDate,
+          $lte: periodRange.endDate,
+        };
+      }
     }
 
-    const [transactions, total] = await Promise.all([
+    const [transactions, total, totals, baseStats] = await Promise.all([
       Transaction.find(matchCriteria)
         .populate("accountId", "name type bankName")
         .populate("categoryId", "name icon type")
@@ -621,9 +678,44 @@ exports.getFamilyTransactions = async (req, res) => {
         .skip(skip)
         .limit(limit),
       Transaction.countDocuments(matchCriteria),
+      Transaction.aggregate([
+        { $match: matchCriteria },
+        {
+          $group: {
+            _id: "$type",
+            total: { $sum: "$amount" },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      getFamilyStats(family),
     ]);
 
-    const stats = await getFamilyStats(family._id);
+    const stats = totals.reduce(
+      (acc, item) => {
+        if (item._id === "THUNHAP") {
+          acc.totalIncome = item.total || 0;
+          acc.incomeCount = item.count || 0;
+        }
+        if (item._id === "CHITIEU") {
+          acc.totalExpense = item.total || 0;
+          acc.expenseCount = item.count || 0;
+        }
+        acc.totalTransactions += item.count || 0;
+        acc.balance = acc.totalIncome - acc.totalExpense;
+        return acc;
+      },
+      {
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+        incomeCount: 0,
+        expenseCount: 0,
+        totalTransactions: 0,
+        familyBudget: baseStats.familyBudget,
+      }
+    );
+
     res.json({
       data: transactions.map(formatTransaction),
       stats,

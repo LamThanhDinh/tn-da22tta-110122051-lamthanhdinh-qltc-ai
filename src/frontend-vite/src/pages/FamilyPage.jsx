@@ -670,7 +670,7 @@ const FamilyPage = () => {
       return;
     }
     // Derive date params từ chartDate/chartPeriod (cùng bộ lọc với biểu đồ)
-    const statsFilters = { ...familyTxFilters };
+    const statsFilters = { ...familyTxFilters, period: chartPeriod };
     if (chartPeriod === "month") {
       statsFilters.month = chartDate.getMonth() + 1;
       statsFilters.year = chartDate.getFullYear();
